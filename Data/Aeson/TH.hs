@@ -587,24 +587,9 @@ parseArgs tName withField (RecC conName ts) =
                     | (field, _, _) <- ts
                     ]
          match (conP 'Object [varP obj])
-               ( normalB $ condE ( infixApp ([|H.size|] `appE` varE obj)
-                                            [|(==)|]
-                                            (litE $ integerL $ genericLength ts)
-                                 )
-                                 ( foldl' (\a b -> infixApp a [|(<*>)|] b)
+               ( normalB ( foldl' (\a b -> infixApp a [|(<*>)|] b)
                                           (infixApp (conE conName) [|(<$>)|] x)
-                                          xs
-                                 )
-                                 ( parseTypeMismatch tName conName
-                                     ( litE $ stringL $ "Object with "
-                                                        ++ show (length ts)
-                                                        ++ " name/value pairs"
-                                     )
-                                     ( infixApp ([|show . H.size|] `appE` varE obj)
-                                                [|(++)|]
-                                                (litE $ stringL $ " name/value pairs")
-                                     )
-                                 )
+                                          xs)
                )
                []
     , matchFailed tName conName "Object"
