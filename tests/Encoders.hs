@@ -1,4 +1,5 @@
 {-# Language CPP, TemplateHaskell #-}
+{-# LANGUAGE RankNTypes, FlexibleContexts #-}
 
 module Encoders where
 

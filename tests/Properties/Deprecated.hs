@@ -21,12 +21,12 @@ genericTo :: (Data a, ToJSON a) => a -> a -> Bool
 genericTo _ v = G.toJSON v == toJSON v
 
 genericFrom :: (Eq a, Data a, ToJSON a) => a -> a -> Bool
-genericFrom _ v = G.fromJSON (toJSON v) == Success v
+genericFrom _ v = G.fromJSON (toJSON v) == Just v
 
 genericToFromJSON :: (Arbitrary a, Eq a, Data a) => a -> Bool
 genericToFromJSON x = case G.fromJSON . G.toJSON $ x of
-                Error _ -> False
-                Success x' -> x == x'
+                Nothing -> False
+                Just x' -> x == x'
 
 regress_gh72 :: [(String, Maybe String)] -> Bool
 regress_gh72 ys = G.decode (G.encode m) == Just m

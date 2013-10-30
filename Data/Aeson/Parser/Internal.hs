@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings, FlexibleContexts #-}
 
 -- |
 -- Module:      Data.Aeson.Parser.Internal
@@ -24,15 +24,14 @@ module Data.Aeson.Parser.Internal
     -- * Helpers
     , decodeWith
     , decodeStrictWith
-    , eitherDecodeWith
-    , eitherDecodeStrictWith
     ) where
 
+import Control.Failure
 import Blaze.ByteString.Builder (fromByteString, toByteString)
 import Blaze.ByteString.Builder.Char.Utf8 (fromChar)
 import Blaze.ByteString.Builder.Word (fromWord8)
 import Control.Applicative as A
-import Data.Aeson.Types (Result(..), Value(..))
+import Data.Aeson.Types (Value(..))
 import Data.Attoparsec.Char8 hiding (Result)
 import Data.Bits ((.|.), shiftL)
 import Data.ByteString as B
@@ -237,45 +236,20 @@ hexQuad = do
     then return $! d .|. (c `shiftL` 4) .|. (b `shiftL` 8) .|. (a `shiftL` 12)
     else fail "invalid hex escape"
 
-decodeWith :: Parser Value -> (Value -> Result a) -> L.ByteString -> Maybe a
+decodeWith :: (Failure String m) => Parser Value -> (Value -> m a) -> L.ByteString -> m a
 decodeWith p to s =
     case L.parse p s of
-      L.Done _ v -> case to v of
-                      Success a -> Just a
-                      _         -> Nothing
-      _          -> Nothing
+      L.Done _ v -> to v
+      L.Fail _ _ msg -> failure msg
 {-# INLINE decodeWith #-}
 
-decodeStrictWith :: Parser Value -> (Value -> Result a) -> B.ByteString
-                 -> Maybe a
+decodeStrictWith :: (Failure String m) => Parser Value -> (Value -> m a) -> B.ByteString -> m a
 decodeStrictWith p to s =
     case A.parse p s of
-      A.Done _ v -> case to v of
-                      Success a -> Just a
-                      _         -> Nothing
-      _          -> Nothing
+      A.Done _ v -> to v
+      A.Fail _ _ msg -> failure msg
+      A.Partial _    -> failure ("incomplete input" :: String)
 {-# INLINE decodeStrictWith #-}
-
-eitherDecodeWith :: Parser Value -> (Value -> Result a) -> L.ByteString
-                 -> Either String a
-eitherDecodeWith p to s =
-    case L.parse p s of
-      L.Done _ v -> case to v of
-                      Success a -> Right a
-                      Error msg -> Left msg
-      L.Fail _ _ msg -> Left msg
-{-# INLINE eitherDecodeWith #-}
-
-eitherDecodeStrictWith :: Parser Value -> (Value -> Result a) -> B.ByteString
-                       -> Either String a
-eitherDecodeStrictWith p to s =
-    case A.parse p s of
-      A.Done _ v -> case to v of
-                      Success a -> Right a
-                      Error msg -> Left msg
-      A.Fail _ _ msg -> Left msg
-      A.Partial _    -> Left "incomplete input"
-{-# INLINE eitherDecodeStrictWith #-}
 
 -- $lazy
 --

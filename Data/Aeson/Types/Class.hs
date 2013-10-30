@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
     GeneralizedNewtypeDeriving, IncoherentInstances, OverlappingInstances,
     OverloadedStrings, UndecidableInstances, ViewPatterns #-}
+{-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 #ifdef GENERICS
@@ -50,6 +51,8 @@ module Data.Aeson.Types.Class
     , typeMismatch
     ) where
 
+import Compat
+import Prelude hiding (fail)
 import Control.Applicative ((<$>), (<*>), (<|>), pure, empty)
 import Data.Aeson.Functions
 import Data.Aeson.Types.Internal
@@ -673,9 +676,11 @@ instance ToJSON ZonedTime where
 
 instance FromJSON ZonedTime where
     parseJSON (String t) =
+      either failure return $
       tryFormats alternateFormats
       <|> fail "could not parse ECMA-262 ISO-8601 date"
       where
+        tryFormat :: String -> Either String ZonedTime
         tryFormat f =
           case parseTime defaultTimeLocale f (unpack t) of
             Just d -> pure d
@@ -829,8 +834,8 @@ name .= value = (name, toJSON value)
 {-# INLINE (.=) #-}
 
 -- | Convert a value from JSON, failing if the types do not match.
-fromJSON :: (FromJSON a) => Value -> Result a
-fromJSON = parse parseJSON
+fromJSON :: (FromJSON a) => Value -> Parser a
+fromJSON = parseJSON
 {-# INLINE fromJSON #-}
 
 -- | Retrieve the value associated with the given key of an 'Object'.

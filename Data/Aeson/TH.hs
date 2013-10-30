@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleInstances, IncoherentInstances, NamedFieldPuns,
+{-# LANGUAGE CPP, FlexibleInstances, IncoherentInstances, NamedFieldPuns, Rank2Types, FlexibleContexts,
     NoImplicitPrelude, OverlappingInstances, TemplateHaskell,
     UndecidableInstances #-}
 
@@ -76,12 +76,14 @@ module Data.Aeson.TH
 -- Imports
 --------------------------------------------------------------------------------
 
+import Compat
+
 -- from aeson:
 import Data.Aeson ( toJSON, Object, object, (.=), (.:), (.:?)
                   , ToJSON, toJSON
                   , FromJSON, parseJSON
                   )
-import Data.Aeson.Types ( Value(..), Parser
+import Data.Aeson.Types ( Value(..)
                         , Options(..)
                         , SumEncoding(..)
                         , defaultOptions
@@ -89,7 +91,7 @@ import Data.Aeson.Types ( Value(..), Parser
                         )
 -- from base:
 import Control.Applicative ( pure, (<$>), (<*>) )
-import Control.Monad       ( return, mapM, liftM2, fail )
+import Control.Monad       ( return, mapM, liftM2 )
 import Data.Bool           ( Bool(False, True), otherwise, (&&) )
 import Data.Eq             ( (==) )
 import Data.Function       ( ($), (.) )

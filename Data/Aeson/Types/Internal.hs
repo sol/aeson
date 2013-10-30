@@ -21,12 +21,7 @@ module Data.Aeson.Types.Internal
     , Object
     , emptyObject
     -- * Type conversion
-    , Parser
     , Result(..)
-    , parse
-    , parseEither
-    , parseMaybe
-    , modifyFailure
     -- * Constructors and accessors
     , object
 
@@ -97,65 +92,6 @@ instance Monoid (Result a) where
     mappend = mplus
     {-# INLINE mappend #-}
 
--- | Failure continuation.
-type Failure f r   = String -> f r
--- | Success continuation.
-type Success a f r = a -> f r
-
--- | A continuation-based parser type.
-newtype Parser a = Parser {
-      runParser :: forall f r.
-                   Failure f r
-                -> Success a f r
-                -> f r
-    }
-
-instance Monad Parser where
-    m >>= g = Parser $ \kf ks -> let ks' a = runParser (g a) kf ks
-                                 in runParser m kf ks'
-    {-# INLINE (>>=) #-}
-    return a = Parser $ \_kf ks -> ks a
-    {-# INLINE return #-}
-    fail msg = Parser $ \kf _ks -> kf msg
-    {-# INLINE fail #-}
-
-instance Functor Parser where
-    fmap f m = Parser $ \kf ks -> let ks' a = ks (f a)
-                                  in runParser m kf ks'
-    {-# INLINE fmap #-}
-
-instance Applicative Parser where
-    pure  = return
-    {-# INLINE pure #-}
-    (<*>) = apP
-    {-# INLINE (<*>) #-}
-
-instance Alternative Parser where
-    empty = fail "empty"
-    {-# INLINE empty #-}
-    (<|>) = mplus
-    {-# INLINE (<|>) #-}
-
-instance MonadPlus Parser where
-    mzero = fail "mzero"
-    {-# INLINE mzero #-}
-    mplus a b = Parser $ \kf ks -> let kf' _ = runParser b kf ks
-                                   in runParser a kf' ks
-    {-# INLINE mplus #-}
-
-instance Monoid (Parser a) where
-    mempty  = fail "mempty"
-    {-# INLINE mempty #-}
-    mappend = mplus
-    {-# INLINE mappend #-}
-
-apP :: Parser (a -> b) -> Parser a -> Parser b
-apP d e = do
-  b <- d
-  a <- e
-  return (b a)
-{-# INLINE apP #-}
-
 -- | A JSON \"object\" (key\/value map).
 type Object = HashMap Text Value
 
@@ -209,21 +145,6 @@ isEmptyArray _ = False
 emptyObject :: Value
 emptyObject = Object H.empty
 
--- | Run a 'Parser'.
-parse :: (a -> Parser b) -> a -> Result b
-parse m v = runParser (m v) Error Success
-{-# INLINE parse #-}
-
--- | Run a 'Parser' with a 'Maybe' result type.
-parseMaybe :: (a -> Parser b) -> a -> Maybe b
-parseMaybe m v = runParser (m v) (const Nothing) Just
-{-# INLINE parseMaybe #-}
-
--- | Run a 'Parser' with an 'Either' result type.
-parseEither :: (a -> Parser b) -> a -> Either String b
-parseEither m v = runParser (m v) Left Right
-{-# INLINE parseEither #-}
-
 -- | A key\/value pair for an 'Object'.
 type Pair = (Text, Value)
 
@@ -232,18 +153,6 @@ type Pair = (Text, Value)
 object :: [Pair] -> Value
 object = Object . H.fromList
 {-# INLINE object #-}
-
--- | If the inner @Parser@ failed, modify the failure message using the
--- provided function. This allows you to create more descriptive error messages.
--- For example:
---
--- > parseJSON (Object o) = modifyFailure
--- >     ("Parsing of the Foo value failed: " ++)
--- >     (Foo <$> o .: "someField")
---
--- Since 0.6.2.0
-modifyFailure :: (String -> String) -> Parser a -> Parser a
-modifyFailure f (Parser p) = Parser $ \kf -> p (kf . f)
 
 --------------------------------------------------------------------------------
 -- Generic and TH encoding configuration

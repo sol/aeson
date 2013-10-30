@@ -101,6 +101,7 @@ library
     Data.Aeson.TH
 
   other-modules:
+    Compat
     Data.Aeson.Functions
     Data.Aeson.Parser.Internal
     Data.Aeson.Types.Class
@@ -113,6 +114,7 @@ library
       Data.Aeson.Types.Generic
 
   build-depends:
+    failure,
     attoparsec >= 0.8.6.1,
     base == 4.*,
     blaze-builder >= 0.2.1.4,
@@ -133,7 +135,7 @@ library
     ghc-options: -Werror
     ghc-prof-options: -auto-all
 
-  ghc-options: -O2 -Wall
+  ghc-options: -Wall
 
 test-suite tests
   type:           exitcode-stdio-1.0
@@ -154,6 +156,7 @@ test-suite tests
     cpp-options: -DGHC_GENERICS
 
   build-depends:
+    failure,
     QuickCheck,
     aeson,
     attoparsec,

@@ -6,6 +6,7 @@
 
 module Instances where
 
+import Control.Failure
 import Types
 import Data.Function (on)
 import Control.Monad
@@ -89,7 +90,7 @@ instance FromJSON Foo where
                            v .: "fooDouble" <*>
                            v .: "fooTuple" <*>
                            v .: "fooMap"
-    parseJSON _ = empty
+    parseJSON _ = failure ""
 
 instance Arbitrary UFoo where
     arbitrary = UFoo <$> arbitrary <*> arbitrary

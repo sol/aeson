@@ -28,11 +28,7 @@ module Data.Aeson.Types
     , Result(..)
     , FromJSON(..)
     , fromJSON
-    , parse
-    , parseEither
-    , parseMaybe
     , ToJSON(..)
-    , modifyFailure
 
 #ifdef GENERICS
     -- ** Generic JSON classes
@@ -62,6 +58,8 @@ module Data.Aeson.Types
     , defaultOptions
     , defaultTaggedObject
     ) where
+
+import Compat
 
 import Data.Aeson.Types.Class
 import Data.Aeson.Types.Internal

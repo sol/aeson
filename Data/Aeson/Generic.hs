@@ -1,4 +1,5 @@
 {-# LANGUAGE PatternGuards, Rank2Types, ScopedTypeVariables, CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 -- |
 -- Module:      Data.Aeson.Generic
@@ -27,9 +28,11 @@ module Data.Aeson.Generic
     , toJSON
     ) where
 
+import Compat
+import Prelude hiding (fail)
 import Control.Applicative ((<$>))
 import Control.Arrow (first)
-import Control.Monad.State.Strict
+import Control.Monad.State.Strict hiding (fail)
 import Data.Aeson.Functions hiding (decode)
 import Data.Aeson.Types hiding (FromJSON(..), ToJSON(..), fromJSON)
 import Data.Attoparsec.Number (Number)
@@ -182,8 +185,8 @@ toJSON_generic = generic
         encodeArgs' ns js  = object $ zip (map pack ns) js
 
 
-fromJSON :: (Data a) => Value -> Result a
-fromJSON = parse parseJSON
+fromJSON :: (Data a) => Value -> Parser a
+fromJSON = parseJSON
 
 type F a = Parser a
 
@@ -267,6 +270,7 @@ parseJSON j = parseJSON_generic j
                         _         -> myFail
         tyrep = typeOf (undefined :: f)
 
+    myFail :: Parser a
     myFail = modFail "parseJSON" $ "bad data: " ++ show j
 
 parseJSON_generic :: (Data a) => Value -> Parser a
@@ -309,7 +313,7 @@ parseJSON_generic j = generic
 
         -- Build the value by stepping through the list of subparts.
         construct c = evalStateT $ fromConstrM f c
-          where f :: (Data a) => StateT [Value] Parser a
+          where f :: (Data a, Applicative m, Failure String m) => StateT [Value] m a
                 f = do js <- get
                        case js of
                          [] -> lift $ modFail "construct" "empty list"
@@ -326,10 +330,10 @@ parseJSON_generic j = generic
         numConstrArgs x c = execState (fromConstrM f c `asTypeOf` return x) 0
           where f = do modify (+1); return undefined
 
-        resType :: MonadPlus m => m a -> a
+        resType :: Monad m => m a -> a
         resType _ = modError "parseJSON" "resType"
 
-modFail :: (Monad m) => String -> String -> m a
+modFail :: (Failure String m) => String -> String -> m a
 modFail func err = fail $ "Data.Aeson.Generic." ++ func ++ ": " ++ err
 
 modError :: String -> String -> a

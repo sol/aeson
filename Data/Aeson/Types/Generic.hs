@@ -3,6 +3,7 @@
     ScopedTypeVariables, TypeOperators, UndecidableInstances,
     ViewPatterns, NamedFieldPuns, FlexibleContexts, PatternGuards,
     RecordWildCards #-}
+{-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
@@ -19,6 +20,8 @@
 
 module Data.Aeson.Types.Generic ( ) where
 
+import Compat
+import Prelude hiding (fail)
 import Control.Applicative ((<*>), (<$>), (<|>), pure)
 import Control.Monad ((<=<))
 import Control.Monad.ST (ST)
@@ -329,15 +332,15 @@ instance ( AllNullary (a :+: b) allNullary
     -- If all constructors of a sum datatype are nullary and the
     -- 'allNullaryToStringTag' option is set they are expected to be
     -- encoded as strings.  This distinction is made by 'parseSum':
-    gParseJSON opts = (unTagged :: Tagged allNullary (Parser ((a :+: b) d)) ->
-                                                     (Parser ((a :+: b) d)))
+    gParseJSON opts = (unTagged :: Tagged allNullary (m ((a :+: b) d)) ->
+                                                     (m ((a :+: b) d)))
                     . parseSum opts
     {-# INLINE gParseJSON #-}
 
 --------------------------------------------------------------------------------
 
 class ParseSum f allNullary where
-    parseSum :: Options -> Value -> Tagged allNullary (Parser (f a))
+    parseSum :: (Applicative m, Failure String m) => Options -> Value -> Tagged allNullary (m (f a))
 
 instance ( SumFromString    (a :+: b)
          , FromPair         (a :+: b)
@@ -354,7 +357,7 @@ instance ( FromPair         (a :+: b)
 
 --------------------------------------------------------------------------------
 
-parseAllNullarySum :: SumFromString f => Options -> Value -> Parser (f a)
+parseAllNullarySum :: (SumFromString f) => Options -> Value -> Parser (f a)
 parseAllNullarySum opts = withText "Text" $ \key ->
                             maybe (notFound $ unpack key) return $
                               parseSumFromString opts key
@@ -409,8 +412,8 @@ parseNonAllNullarySum opts =
 --------------------------------------------------------------------------------
 
 class FromTaggedObject f where
-    parseFromTaggedObject :: Options -> String -> Object -> Text
-                          -> Maybe (Parser (f a))
+    parseFromTaggedObject :: (Applicative m, Failure String m) => Options -> String -> Object -> Text
+                          -> Maybe (m (f a))
 
 instance (FromTaggedObject a, FromTaggedObject b) =>
     FromTaggedObject (a :+: b) where
@@ -436,14 +439,14 @@ class FromTaggedObject' f where
     parseFromTaggedObject' :: Options -> String -> Object -> Parser (f a)
 
 class FromTaggedObject'' f isRecord where
-    parseFromTaggedObject'' :: Options -> String -> Object
-                            -> Tagged isRecord (Parser (f a))
+    parseFromTaggedObject'' :: (Applicative m, Failure String m) => Options -> String -> Object
+                            -> Tagged isRecord (m (f a))
 
 instance ( IsRecord             f isRecord
          , FromTaggedObject''   f isRecord
          ) => FromTaggedObject' f where
     parseFromTaggedObject' opts contentsFieldName =
-        (unTagged :: Tagged isRecord (Parser (f a)) -> Parser (f a)) .
+        (unTagged :: Tagged isRecord (m (f a)) -> m (f a)) .
         parseFromTaggedObject'' opts contentsFieldName
     {-# INLINE parseFromTaggedObject' #-}
 
@@ -462,12 +465,12 @@ class ConsFromJSON f where
     consParseJSON  :: Options -> Value -> Parser (f a)
 
 class ConsFromJSON' f isRecord where
-    consParseJSON' :: Options -> Value -> Tagged isRecord (Parser (f a))
+    consParseJSON' :: (Applicative m, Failure String m) => Options -> Value -> Tagged isRecord (m (f a))
 
 instance ( IsRecord        f isRecord
          , ConsFromJSON'   f isRecord
          ) => ConsFromJSON f where
-    consParseJSON opts = (unTagged :: Tagged isRecord (Parser (f a)) -> Parser (f a))
+    consParseJSON opts = (unTagged :: Tagged isRecord (m (f a)) -> m (f a))
                        . consParseJSON' opts
     {-# INLINE consParseJSON #-}
 
@@ -543,7 +546,7 @@ instance (GFromJSON a) => FromProduct (S1 s a) where
 --------------------------------------------------------------------------------
 
 class FromPair f where
-    parsePair :: Options -> Pair -> Maybe (Parser (f a))
+    parsePair :: (Applicative m, Failure String m) => Options -> Pair -> Maybe (m (f a))
 
 instance (FromPair a, FromPair b) => FromPair (a :+: b) where
     parsePair opts pair = (fmap L1 <$> parsePair opts pair) <|>

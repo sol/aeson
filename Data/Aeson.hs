@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- |
 -- Module:      Data.Aeson
@@ -80,9 +81,10 @@ module Data.Aeson
     , json'
     ) where
 
+import Compat
+
 import Data.Aeson.Encode (encode)
 import Data.Aeson.Parser.Internal (decodeWith, decodeStrictWith,
-                                   eitherDecodeWith, eitherDecodeStrictWith,
                                    jsonEOF, json, jsonEOF', json')
 import Data.Aeson.Types
 import qualified Data.ByteString as B
@@ -100,7 +102,7 @@ import qualified Data.ByteString.Lazy as L
 --
 -- This function parses immediately, but defers conversion.  See
 -- 'json' for details.
-decode :: (FromJSON a) => L.ByteString -> Maybe a
+decode :: (FromJSON a) => L.ByteString -> Parser a
 decode = decodeWith jsonEOF fromJSON
 {-# INLINE decode #-}
 
@@ -113,7 +115,7 @@ decode = decodeWith jsonEOF fromJSON
 --
 -- This function parses immediately, but defers conversion.  See
 -- 'json' for details.
-decodeStrict :: (FromJSON a) => B.ByteString -> Maybe a
+decodeStrict :: (FromJSON a) => B.ByteString -> Parser a
 decodeStrict = decodeStrictWith jsonEOF fromJSON
 {-# INLINE decodeStrict #-}
 
@@ -129,7 +131,7 @@ decodeStrict = decodeStrictWith jsonEOF fromJSON
 --
 -- This function parses and performs conversion immediately.  See
 -- 'json'' for details.
-decode' :: (FromJSON a) => L.ByteString -> Maybe a
+decode' :: (FromJSON a) => L.ByteString -> Parser a
 decode' = decodeWith jsonEOF' fromJSON
 {-# INLINE decode' #-}
 
@@ -142,28 +144,28 @@ decode' = decodeWith jsonEOF' fromJSON
 --
 -- This function parses and performs conversion immediately.  See
 -- 'json'' for details.
-decodeStrict' :: (FromJSON a) => B.ByteString -> Maybe a
+decodeStrict' :: (FromJSON a) => B.ByteString -> Parser a
 decodeStrict' = decodeStrictWith jsonEOF' fromJSON
 {-# INLINE decodeStrict' #-}
 
 -- | Like 'decode' but returns an error message when decoding fails.
 eitherDecode :: (FromJSON a) => L.ByteString -> Either String a
-eitherDecode = eitherDecodeWith jsonEOF fromJSON
+eitherDecode = decode
 {-# INLINE eitherDecode #-}
 
 -- | Like 'decodeStrict' but returns an error message when decoding fails.
 eitherDecodeStrict :: (FromJSON a) => B.ByteString -> Either String a
-eitherDecodeStrict = eitherDecodeStrictWith jsonEOF fromJSON
+eitherDecodeStrict = decodeStrict
 {-# INLINE eitherDecodeStrict #-}
 
 -- | Like 'decode'' but returns an error message when decoding fails.
 eitherDecode' :: (FromJSON a) => L.ByteString -> Either String a
-eitherDecode' = eitherDecodeWith jsonEOF' fromJSON
+eitherDecode' = decode'
 {-# INLINE eitherDecode' #-}
 
 -- | Like 'decodeStrict'' but returns an error message when decoding fails.
 eitherDecodeStrict' :: (FromJSON a) => B.ByteString -> Either String a
-eitherDecodeStrict' = eitherDecodeStrictWith jsonEOF' fromJSON
+eitherDecodeStrict' = decodeStrict'
 {-# INLINE eitherDecodeStrict' #-}
 
 -- $use
